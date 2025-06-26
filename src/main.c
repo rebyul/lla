@@ -19,7 +19,8 @@ int main(int argc, char *argv[]) {
   bool newfile = false;
 
   int dbfd = -1;
-  struct dbheader_t *dbhdr = malloc(sizeof(struct dbheader_t));
+  struct dbheader_t *dbhdr = NULL;
+  struct employee_t *employees = NULL;
 
   while ((c = getopt(argc, argv, "nf:")) != -1) {
     switch (c) {
@@ -69,6 +70,10 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (read_employees(dbfd, dbhdr, &employees) != STATUS_SUCCESS) {
+    printf("failed to read employees");
+    return 0;
+  };
   debug_db_header(dbhdr);
 
   printf("Newfile: %d\n", newfile);
