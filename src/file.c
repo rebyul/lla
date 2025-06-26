@@ -29,6 +29,7 @@ int create_db_file(char *filename) {
 
 int open_db_file(char *filename) {
   int fd = open(filename, O_RDONLY);
+
   // File does exist
   if (fd == -1) {
     close(fd);
