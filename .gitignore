@@ -32,6 +32,9 @@
 *.so.*
 *.dylib
 
+# bin
+bin/**
+
 # Executables
 *.exe
 *.out
