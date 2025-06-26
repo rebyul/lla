@@ -80,6 +80,9 @@ int main(int argc, char *argv[]) {
   };
 
   if (addstring) {
+    dbhdr->count++;
+    employees = realloc(employees, dbhdr->count * sizeof(struct employee_t));
+
     add_employee(dbhdr, employees, addstring);
   }
 
@@ -88,7 +91,11 @@ int main(int argc, char *argv[]) {
   printf("Newfile: %d\n", newfile);
   printf("Filepath: %s\n", filepath);
 
-  output_file(dbfd, dbhdr, NULL);
+  output_file(dbfd, dbhdr, employees);
 
+  free(dbhdr);
+  dbhdr = NULL;
+  free(employees);
+  employees = NULL;
   return 0;
 }

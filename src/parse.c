@@ -11,11 +11,51 @@
 
 void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {}
 
+void parse_employee(char *addstring, struct employee_t **newEmpOut) {
+  struct employee_t *newEmp = calloc(1, sizeof(struct employee_t));
+
+  char *name = strtok(addstring, ",");
+  // Internally strtok tracks how far we have gone through addstr
+  // So we dont need to pass in addstr again
+  char *addr = strtok(NULL, ",");
+  char *hours = strtok(NULL, ",");
+
+  strncpy(newEmp->name, name, sizeof(newEmp->name) - 1);
+  newEmp->name[sizeof(newEmp->name) - 1] = '\0'; // Null termination
+
+  strncpy(newEmp->address, addr, sizeof(newEmp->address) - 1);
+  newEmp->address[sizeof(newEmp->address) - 1] = '\0'; // Null termination
+
+  newEmp->hours = atoi(hours);
+
+  *newEmpOut = newEmp;
+}
+
 int add_employee(struct dbheader_t *dbhdr, struct employee_t *employees,
                  char *addstring) {
-  struct employee_t *newEmp = malloc(sizeof(struct employee_t));
-  printf("%s\n", addstring);
-  free(newEmp);
+  /* printf("%s\n", addstring); */
+  /* struct employee_t *newEmp = NULL; */
+  struct employee_t **newEmp = malloc(sizeof(struct employee_t *));
+  parse_employee(addstring, newEmp);
+  /* printf("Double ptr success: %s %s %d\n", (newEmp)->name, (newEmp)->address,
+   */
+  /*        (newEmp)->hours); */
+  /* (*employees)[dbhdr->count] = */
+  /*     *newEmp; // Dereference to copy the struct's contents */
+  /* struct employee_t **lastEmpSlot = calloc(1, sizeof(struct employee_t)); */
+  /* employees[dbhdr->count - 1] = (*newEmp); */
+  /* *lastEmpSlot = &employees[dbhdr->count - 1]; */
+  /* lastEmpSlot = &newEmp; */
+  strncpy(employees[dbhdr->count - 1].name, (*newEmp)->name,
+          sizeof(employees[dbhdr->count - 1].name));
+  strncpy(employees[dbhdr->count - 1].address, (*newEmp)->address,
+          sizeof(employees[dbhdr->count - 1].address));
+  employees[dbhdr->count - 1].hours = (*newEmp)->hours;
+
+  /* free(newEmp); */
+  /* newEmp = NULL; */
+  /* free(lastEmpSlot); */
+  /* lastEmpSlot = NULL; */
   return STATUS_SUCCESS;
 }
 
@@ -55,13 +95,26 @@ int output_file(int fd, struct dbheader_t *dbhdr,
     printf("Invalid file descriptor\n");
     return STATUS_ERROR;
   }
+  int realcount = dbhdr->count;
+
+  dbhdr->magic = htonl(dbhdr->magic);
+  dbhdr->filesize = htonl(sizeof(struct dbheader_t) +
+                          (sizeof(struct employee_t) * realcount));
   dbhdr->count = htons(dbhdr->count);
   dbhdr->version = htons(dbhdr->version);
-  dbhdr->magic = htonl(dbhdr->magic);
-  dbhdr->filesize = htonl(dbhdr->filesize);
 
   lseek(fd, 0, SEEK_SET);
+
   write(fd, dbhdr, sizeof(struct dbheader_t));
+
+  int i = 0;
+  for (; i < realcount; i++) {
+    printf("hours: %d", employees[i].hours);
+    employees[i].hours = htonl(employees[i].hours);
+    write(fd, &employees[i], sizeof(struct employee_t));
+  }
+
+  close(fd);
 
   return STATUS_SUCCESS;
 }
@@ -136,13 +189,14 @@ int create_db_header(int fd, struct dbheader_t **headerOut) {
   }
 
   *headerOut = header;
-  printf("%d", header->count);
+  printf("%d\n", header->count);
+
   return STATUS_SUCCESS;
 }
 
-/* void debug_db_header(struct dbheader_t *dbhdr) { */
-/*   printf("header version %u\n", dbhdr->version); */
-/*   printf("header filesize %u\n", dbhdr->filesize); */
-/*   printf("header magic %x\n", dbhdr->magic); */
-/*   printf("header count %d\n", dbhdr->count); */
-/* } */
+void debug_db_header(struct dbheader_t *dbhdr) {
+  printf("header version %u\n", dbhdr->version);
+  printf("header filesize %u\n", dbhdr->filesize);
+  printf("header magic %x\n", dbhdr->magic);
+  printf("header count %d\n", dbhdr->count);
+}
