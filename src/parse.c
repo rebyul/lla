@@ -12,7 +12,12 @@
 void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {}
 
 int add_employee(struct dbheader_t *dbhdr, struct employee_t *employees,
-                 char *addstring) {}
+                 char *addstring) {
+  struct employee_t *newEmp = malloc(sizeof(struct employee_t));
+  printf("%s\n", addstring);
+  free(newEmp);
+  return STATUS_SUCCESS;
+}
 
 int read_employees(int fd, struct dbheader_t *dbhdr,
                    struct employee_t **employeesOut) {
@@ -135,9 +140,9 @@ int create_db_header(int fd, struct dbheader_t **headerOut) {
   return STATUS_SUCCESS;
 }
 
-void debug_db_header(struct dbheader_t *dbhdr) {
-  printf("header version %u\n", dbhdr->version);
-  printf("header filesize %u\n", dbhdr->filesize);
-  printf("header magic %x\n", dbhdr->magic);
-  printf("header count %d\n", dbhdr->count);
-}
+/* void debug_db_header(struct dbheader_t *dbhdr) { */
+/*   printf("header version %u\n", dbhdr->version); */
+/*   printf("header filesize %u\n", dbhdr->filesize); */
+/*   printf("header magic %x\n", dbhdr->magic); */
+/*   printf("header count %d\n", dbhdr->count); */
+/* } */
