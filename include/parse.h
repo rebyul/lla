@@ -25,7 +25,7 @@ void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees);
 int add_employee(struct dbheader_t *dbhdr, struct employee_t **employees,
                  char *addstring);
 int remove_employee_by_name(struct dbheader_t *dbhdr,
-                            struct employee_t *employees, char *name);
+                            struct employee_t **employees, char *name);
 int update_employee_hours(struct dbheader_t *dbhdr,
                           struct employee_t **employees, char *name,
                           int newHours);

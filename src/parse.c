@@ -15,6 +15,7 @@ void print_employee(int i, struct employee_t *employee) {
   printf("\t Address: %s\n", employee->address);
   printf("\t Hours: %u\n", employee->hours);
 }
+
 void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {
   for (int i = 0; i < dbhdr->count; i++) {
     print_employee(i, &employees[i]);
@@ -106,20 +107,30 @@ int output_file(int fd, struct dbheader_t *dbhdr,
     printf("Invalid file descriptor\n");
     return STATUS_ERROR;
   }
-  int realcount = dbhdr->count;
+  // Gotta save this before it's changed from htonl (network long)
+  int hostCountValue = dbhdr->count;
+  unsigned long testSize = (sizeof(struct employee_t) * hostCountValue);
+  printf("Wtfmeow: %lu, wtwt: %u, wtwtwt: %lu, wtwtwtwt: %u\n", testSize,
+         htonl(testSize),
+         sizeof(struct dbheader_t) +
+             (sizeof(struct employee_t) * hostCountValue),
+         htonl(sizeof(struct dbheader_t) +
+               (sizeof(struct employee_t) * hostCountValue)));
 
   dbhdr->magic = htonl(dbhdr->magic);
   dbhdr->filesize = htonl(sizeof(struct dbheader_t) +
-                          (sizeof(struct employee_t) * realcount));
+                          (sizeof(struct employee_t) * hostCountValue));
   dbhdr->count = htons(dbhdr->count);
   dbhdr->version = htons(dbhdr->version);
 
+  printf("Meow meow: %d, %d, %u\n", hostCountValue, dbhdr->count,
+         ntohl(dbhdr->filesize));
   lseek(fd, 0, SEEK_SET);
 
   write(fd, dbhdr, sizeof(struct dbheader_t));
 
   int i = 0;
-  for (; i < realcount; i++) {
+  for (; i < hostCountValue; i++) {
     employees[i].hours = htonl(employees[i].hours);
     write(fd, &employees[i], sizeof(struct employee_t));
   }
@@ -172,7 +183,9 @@ int validate_db_header(int fd, struct dbheader_t **headerOut) {
   fstat(fd, &dbstat);
 
   if (dbhdr->filesize != dbstat.st_size) {
-    printf("Corrupted database\n");
+    debug_db_header(dbhdr);
+    printf("Corrupted database. filesize: %u, st_size: %lld\n", dbhdr->filesize,
+           dbstat.st_size);
     return STATUS_ERROR;
   }
 
@@ -205,14 +218,71 @@ int create_db_header(int fd, struct dbheader_t **headerOut) {
 }
 
 int remove_employee_by_name(struct dbheader_t *dbhdr,
-                            struct employee_t *employees, char *name) {
+                            struct employee_t **employees, char *name) {
+  // Find employee index to remove
+  int toRemoveIndex = -1;
+
+  for (unsigned int j = 0; j < dbhdr->count; j++) {
+    unsigned int equality = strcmp((*employees)[j].name, name);
+    printf("Checking %s at %d against %s, Equality: %u\n", name, j,
+           (*employees)[j].name, equality);
+
+    // If name matches
+    if (equality == 0) {
+      toRemoveIndex = j;
+      break;
+    }
+  }
+
+  // If not found
+  if (toRemoveIndex == -1) {
+    printf("Employee: %s was not found. Can't remove\n", name);
+    return STATUS_ERROR;
+  }
+
+  printf("Found emp at index: %d\n", toRemoveIndex);
+
+  // Find how many employees there exists after the employees list
+  int employees_to_move = dbhdr->count - toRemoveIndex - 1;
+  printf("To move: %d\n", employees_to_move);
+
+  if (employees_to_move > 0) {
+    memmove(&((*employees)[toRemoveIndex]), &((*employees)[toRemoveIndex + 1]),
+            employees_to_move * sizeof(struct employee_t));
+  }
+
+  // If we removed the last item, free the employees list
+  if ((dbhdr->count - 1) == 0) {
+    printf("No employees left. Freeing employees and return success\n");
+    free(*employees);
+    *employees = NULL;
+  }
+  // Else we want to resize the employees by moving the structs that exist after
+  // the employee to delete forward one index
+  else {
+    struct employee_t *removed_employees =
+        realloc(*employees, (dbhdr->count - 1) * sizeof(struct employee_t));
+
+    if (removed_employees == NULL) {
+      free(removed_employees);
+      perror("realloc to shrink failed");
+      return STATUS_ERROR;
+    }
+
+    *employees = removed_employees;
+  }
+
+  // Decrease header count after everything is done
+  dbhdr->count--;
+
+  printf("Realloc length: %d size: %lu\n", dbhdr->count, sizeof(*employees));
 
   return STATUS_SUCCESS;
 }
 
 void debug_db_header(struct dbheader_t *dbhdr) {
-  printf("header version %u\n", dbhdr->version);
-  printf("header filesize %u\n", dbhdr->filesize);
-  printf("header magic %x\n", dbhdr->magic);
-  printf("header count %d\n", dbhdr->count);
+  printf("Header: version %u\n", dbhdr->version);
+  printf("Header: filesize %u\n", dbhdr->filesize);
+  printf("Header: magic %x\n", dbhdr->magic);
+  printf("Header: count %d\n", dbhdr->count);
 }

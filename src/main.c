@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   struct dbheader_t *dbhdr = NULL;
   struct employee_t *employees = NULL;
 
-  while ((c = getopt(argc, argv, "nf:a:lr:")) != -1) {
+  while ((c = getopt(argc, argv, "nlf:a:r:")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'r':
       removeName = optarg;
+      break;
     case '?':
       printf("Unknown option -%c\n", c);
       break;
@@ -98,20 +99,24 @@ int main(int argc, char *argv[]) {
   }
 
   if (removeName) {
-    if (remove_employee_by_name(dbhdr, employees, removeName) == STATUS_ERROR) {
+    printf("Attempting to remove: %s\n", removeName);
+    if (remove_employee_by_name(dbhdr, &employees, removeName) ==
+        STATUS_ERROR) {
+      printf("Failed to delete employee %s\n", removeName);
+      return -1;
     }
 
     /* dbhdr->count--; */
 
     printf("Successfully deleted employee %s. New Employee count: %d\n",
            removeName, dbhdr->count);
+    printf("post remove size: %lu\n", sizeof(*employees));
   }
-
-  debug_db_header(dbhdr);
 
   printf("Newfile: %s\n", newfile ? "true" : "false");
   printf("Filepath: %s\n", filepath);
 
+  /* debug_db_header(dbhdr); */
   output_file(dbfd, dbhdr, employees);
 
   free(dbhdr);
