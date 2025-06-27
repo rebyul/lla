@@ -58,6 +58,8 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t *employees,
     return STATUS_ERROR;
   }
 
+  // Set the last employees pointer array to the value pointed at by the double
+  // ptr
   employees[dbhdr->count - 1] = **newEmp;
 
   free(*newEmp);

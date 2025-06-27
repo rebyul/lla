@@ -18,13 +18,14 @@ int main(int argc, char *argv[]) {
   char *filepath = NULL;
   bool newfile = false;
   bool list = false;
+  char *removeName = NULL;
   char *addstring = NULL;
 
   int dbfd = -1;
   struct dbheader_t *dbhdr = NULL;
   struct employee_t *employees = NULL;
 
-  while ((c = getopt(argc, argv, "nf:a:l")) != -1) {
+  while ((c = getopt(argc, argv, "nf:a:lr:")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
@@ -38,6 +39,8 @@ int main(int argc, char *argv[]) {
     case 'l':
       list = true;
       break;
+    case 'r':
+      removeName = optarg;
     case '?':
       printf("Unknown option -%c\n", c);
       break;
@@ -95,6 +98,15 @@ int main(int argc, char *argv[]) {
 
   if (list) {
     list_employees(dbhdr, employees);
+  }
+
+  if (removeName) {
+    if (remove_employee_by_name(dbhdr, employees, removeName) == STATUS_ERROR) {
+    }
+    dbhdr->count--;
+
+    printf("Successfully deleted employee %s. New Employee count: %d\n",
+           removeName, dbhdr->count);
   }
 
   /* debug_db_header(dbhdr); */
