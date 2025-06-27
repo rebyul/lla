@@ -21,33 +21,20 @@ void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {
   }
 }
 
-void parse_employee(char *addstring, struct employee_t **newEmpOut) {
-  struct employee_t *newEmp = calloc(1, sizeof(struct employee_t));
-
-  if (newEmp == NULL) {
-    perror("calloc");
-    printf("Calloc newEmp failed\n");
-    return;
-  };
-
+void update_employee_from_string(char *addstring, struct employee_t *newEmp) {
   char *name = strtok(addstring, ",");
   // Internally strtok tracks how far we have gone through addstr
   // So we dont need to pass in addstr again
   char *addr = strtok(NULL, ",");
   char *hours = strtok(NULL, ",");
 
-  strncpy(newEmp->name, name, sizeof(newEmp->name) - 1);
-  newEmp->name[sizeof(newEmp->name) - 1] = '\0'; // Null termination
+  strncpy((newEmp)->name, name, sizeof((newEmp)->name) - 1);
+  (newEmp)->name[sizeof((newEmp)->name) - 1] = '\0'; // Null termination
 
-  strncpy(newEmp->address, addr, sizeof(newEmp->address) - 1);
-  newEmp->address[sizeof(newEmp->address) - 1] = '\0'; // Null termination
+  strncpy((newEmp)->address, addr, sizeof((newEmp)->address) - 1);
+  (newEmp)->address[sizeof((newEmp)->address) - 1] = '\0'; // Null termination
 
-  newEmp->hours = atoi(hours);
-
-  printf("debug: %p, %p, %p, %p\n", newEmpOut, newEmp, *newEmpOut, &newEmp);
-
-  // set the newly created newEmp pointer's referenced value to newEmpOut
-  *newEmpOut = newEmp;
+  (newEmp)->hours = atoi(hours);
 }
 
 int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
@@ -68,28 +55,13 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
   struct employee_t *newEmp = &((*employeesOut)[dbhdr->count]);
 
   if (!newEmp) {
+    perror("malloc");
     printf("Failed to malloc **newEmp\n");
-    return STATUS_ERROR;
-  }
-
-  parse_employee(addstring, &newEmp);
-
-  if (newEmp == NULL) {
-    printf("Failed to parse into *newEmp: %s\n", (newEmp)->name);
     free(newEmp);
     return STATUS_ERROR;
   }
 
-  // Set the last employees pointer array to the value pointed at by the double
-  // ptr
-  // Dont need this as it's directly set in parse_employee it has a pointer to
-  // the last slot in the employeesOut contiguous struct (newEmp)
-  /* *employeesOut[dbhdr->count - 1] = *newEmp; */
-
-  /* free(*newEmp); */
-  /* *newEmp = NULL; */
-  free(newEmp);
-  newEmp = NULL;
+  update_employee_from_string(addstring, newEmp);
 
   // Only increment the header count after everything succeeds
   dbhdr->count++;
