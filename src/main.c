@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (read_employees(dbfd, dbhdr, &employees) != STATUS_SUCCESS) {
-    printf("failed to read employees");
+    printf("Failed to read employees");
     return 0;
   };
 
@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
     employees = realloc(employees, dbhdr->count * sizeof(struct employee_t));
 
     add_employee(dbhdr, employees, addstring);
+
+    printf("Successfully created employee. New Employee count: %d\n",
+           dbhdr->count);
   }
 
   if (list) {
@@ -96,7 +99,7 @@ int main(int argc, char *argv[]) {
 
   /* debug_db_header(dbhdr); */
 
-  printf("Newfile: %d\n", newfile);
+  printf("Newfile: %s\n", newfile ? "true" : "false");
   printf("Filepath: %s\n", filepath);
 
   output_file(dbfd, dbhdr, employees);

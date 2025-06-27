@@ -9,7 +9,17 @@
 #include "common.h"
 #include "parse.h"
 
-void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {}
+void print_employee(int i, struct employee_t *employee) {
+  printf("Employee %d\n", i);
+  printf("\t Name: %s\n", employee->name);
+  printf("\t Address: %s\n", employee->address);
+  printf("\t Hours: %u\n", employee->hours);
+}
+void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {
+  for (int i = 0; i < dbhdr->count; i++) {
+    print_employee(i, &employees[i]);
+  }
+}
 
 void parse_employee(char *addstring, struct employee_t **newEmpOut) {
   struct employee_t *newEmp = calloc(1, sizeof(struct employee_t));
