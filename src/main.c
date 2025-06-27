@@ -87,10 +87,7 @@ int main(int argc, char *argv[]) {
   };
 
   if (addstring) {
-    dbhdr->count++;
-    employees = realloc(employees, dbhdr->count * sizeof(struct employee_t));
-
-    add_employee(dbhdr, employees, addstring);
+    add_employee(dbhdr, &employees, addstring);
 
     printf("Successfully created employee. New Employee count: %d\n",
            dbhdr->count);
@@ -103,13 +100,14 @@ int main(int argc, char *argv[]) {
   if (removeName) {
     if (remove_employee_by_name(dbhdr, employees, removeName) == STATUS_ERROR) {
     }
-    dbhdr->count--;
+
+    /* dbhdr->count--; */
 
     printf("Successfully deleted employee %s. New Employee count: %d\n",
            removeName, dbhdr->count);
   }
 
-  /* debug_db_header(dbhdr); */
+  debug_db_header(dbhdr);
 
   printf("Newfile: %s\n", newfile ? "true" : "false");
   printf("Filepath: %s\n", filepath);

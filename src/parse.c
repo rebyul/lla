@@ -24,6 +24,12 @@ void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {
 void parse_employee(char *addstring, struct employee_t **newEmpOut) {
   struct employee_t *newEmp = calloc(1, sizeof(struct employee_t));
 
+  if (newEmp == NULL) {
+    perror("calloc");
+    printf("Calloc newEmp failed\n");
+    return;
+  };
+
   char *name = strtok(addstring, ",");
   // Internally strtok tracks how far we have gone through addstr
   // So we dont need to pass in addstr again
@@ -38,34 +44,55 @@ void parse_employee(char *addstring, struct employee_t **newEmpOut) {
 
   newEmp->hours = atoi(hours);
 
+  printf("debug: %p, %p, %p, %p\n", newEmpOut, newEmp, *newEmpOut, &newEmp);
+
+  // set the newly created newEmp pointer's referenced value to newEmpOut
   *newEmpOut = newEmp;
 }
 
-int add_employee(struct dbheader_t *dbhdr, struct employee_t *employees,
+int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
                  char *addstring) {
-  struct employee_t **newEmp = malloc(sizeof(struct employee_t *));
+  struct employee_t *new_employees =
+      realloc(*employeesOut, (dbhdr->count + 1) * sizeof(struct employee_t));
+
+  if (new_employees == NULL) {
+    perror("realloc");
+    printf("Realloc new_employees failed\n");
+    return STATUS_ERROR;
+  };
+
+  // If realloc succeeded, assign the new block to our pointer
+  *employeesOut = new_employees;
+
+  // set newEmp to point to the new slot allocated in employeesOut
+  struct employee_t *newEmp = &((*employeesOut)[dbhdr->count]);
 
   if (!newEmp) {
-    printf("Failedt o malloc **newEmp\n");
+    printf("Failed to malloc **newEmp\n");
     return STATUS_ERROR;
   }
 
-  parse_employee(addstring, newEmp);
+  parse_employee(addstring, &newEmp);
 
-  if (!*newEmp) {
-    printf("Failed to parse into *newEmp\n");
+  if (newEmp == NULL) {
+    printf("Failed to parse into *newEmp: %s\n", (newEmp)->name);
     free(newEmp);
     return STATUS_ERROR;
   }
 
   // Set the last employees pointer array to the value pointed at by the double
   // ptr
-  employees[dbhdr->count - 1] = **newEmp;
+  // Dont need this as it's directly set in parse_employee it has a pointer to
+  // the last slot in the employeesOut contiguous struct (newEmp)
+  /* *employeesOut[dbhdr->count - 1] = *newEmp; */
 
-  free(*newEmp);
-  *newEmp = NULL;
+  /* free(*newEmp); */
+  /* *newEmp = NULL; */
   free(newEmp);
   newEmp = NULL;
+
+  // Only increment the header count after everything succeeds
+  dbhdr->count++;
 
   return STATUS_SUCCESS;
 }
@@ -201,6 +228,12 @@ int create_db_header(int fd, struct dbheader_t **headerOut) {
 
   *headerOut = header;
   printf("%d\n", header->count);
+
+  return STATUS_SUCCESS;
+}
+
+int remove_employee_by_name(struct dbheader_t *dbhdr,
+                            struct employee_t *employees, char *name) {
 
   return STATUS_SUCCESS;
 }
