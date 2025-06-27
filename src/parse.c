@@ -222,28 +222,34 @@ int create_db_header(int fd, struct dbheader_t **headerOut) {
   return STATUS_SUCCESS;
 }
 
+void find_first_employee_index(struct employee_t *employees, char *name,
+                               int count, int *employeeOut) {
+  for (unsigned int i = 0; i < count; i++) {
+    unsigned int equality = strcmp((employees)[i].name, name);
+
+    // If name matches
+    if (equality == 0) {
+      *employeeOut = i;
+      printf("Found emp at index: %d\n", i);
+      return;
+    }
+  }
+
+  // If not found
+  char *error_msg = NULL;
+  sprintf(error_msg, "Employee: %s was not found. Can't remove\n", name);
+  perror(error_msg);
+}
+
 int remove_employee_by_name(struct dbheader_t *dbhdr,
                             struct employee_t **employees, char *name) {
   // Find employee index to remove
   int toRemoveIndex = -1;
 
-  for (unsigned int j = 0; j < dbhdr->count; j++) {
-    unsigned int equality = strcmp((*employees)[j].name, name);
+  int *toRemoveOut = &toRemoveIndex;
 
-    // If name matches
-    if (equality == 0) {
-      toRemoveIndex = j;
-      break;
-    }
-  }
-
-  // If not found
-  if (toRemoveIndex == -1) {
-    printf("Employee: %s was not found. Can't remove\n", name);
-    return STATUS_ERROR;
-  }
-
-  printf("Found emp at index: %d\n", toRemoveIndex);
+  find_first_employee_index(*employees, name, dbhdr->count, toRemoveOut);
+  printf("To remove index %d, %d", *toRemoveOut, toRemoveIndex);
 
   // Find how many employees there exists after the employees list
   int employees_to_move = dbhdr->count - toRemoveIndex - 1;
@@ -280,6 +286,8 @@ int remove_employee_by_name(struct dbheader_t *dbhdr,
   return STATUS_SUCCESS;
 }
 
+int update_employee_by_name(struct dbheader_t *dbhdr,
+                            struct employee_t **employees, char *name) {}
 void debug_db_header(struct dbheader_t *dbhdr) {
   printf("Header: version %u\n", dbhdr->version);
   printf("Header: filesize %u\n", dbhdr->filesize);
