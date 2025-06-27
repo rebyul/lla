@@ -23,7 +23,14 @@ void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {
 }
 
 void update_employee_from_string(char *addstring, struct employee_t *newEmp) {
-  char *name = strtok(addstring, ",");
+  char *addstring_copy = strdup(addstring);
+
+  if (addstring_copy == NULL) {
+    perror("strdup failed to copy addstring");
+    return;
+  }
+
+  char *name = strtok(addstring_copy, ",");
   // Internally strtok tracks how far we have gone through addstr
   // So we dont need to pass in addstr again
   char *addr = strtok(NULL, ",");
@@ -36,6 +43,8 @@ void update_employee_from_string(char *addstring, struct employee_t *newEmp) {
   (newEmp)->address[sizeof((newEmp)->address) - 1] = '\0'; // Null termination
 
   (newEmp)->hours = atoi(hours);
+
+  free(addstring_copy);
 }
 
 int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
@@ -44,8 +53,7 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
       realloc(*employeesOut, (dbhdr->count + 1) * sizeof(struct employee_t));
 
   if (new_employees == NULL) {
-    perror("realloc");
-    printf("Realloc new_employees failed\n");
+    perror("Realloc new_employees failed");
     return STATUS_ERROR;
   };
 
@@ -109,22 +117,14 @@ int output_file(int fd, struct dbheader_t *dbhdr,
   }
   // Gotta save this before it's changed from htonl (network long)
   int hostCountValue = dbhdr->count;
-  unsigned long testSize = (sizeof(struct employee_t) * hostCountValue);
-  printf("Wtfmeow: %lu, wtwt: %u, wtwtwt: %lu, wtwtwtwt: %u\n", testSize,
-         htonl(testSize),
-         sizeof(struct dbheader_t) +
-             (sizeof(struct employee_t) * hostCountValue),
-         htonl(sizeof(struct dbheader_t) +
-               (sizeof(struct employee_t) * hostCountValue)));
+  unsigned int final_file_size =
+      sizeof(struct dbheader_t) + (sizeof(struct employee_t) * dbhdr->count);
 
   dbhdr->magic = htonl(dbhdr->magic);
-  dbhdr->filesize = htonl(sizeof(struct dbheader_t) +
-                          (sizeof(struct employee_t) * hostCountValue));
+  dbhdr->filesize = htonl(final_file_size);
   dbhdr->count = htons(dbhdr->count);
   dbhdr->version = htons(dbhdr->version);
 
-  printf("Meow meow: %d, %d, %u\n", hostCountValue, dbhdr->count,
-         ntohl(dbhdr->filesize));
   lseek(fd, 0, SEEK_SET);
 
   write(fd, dbhdr, sizeof(struct dbheader_t));
@@ -133,6 +133,11 @@ int output_file(int fd, struct dbheader_t *dbhdr,
   for (; i < hostCountValue; i++) {
     employees[i].hours = htonl(employees[i].hours);
     write(fd, &employees[i], sizeof(struct employee_t));
+  }
+
+  if (ftruncate(fd, final_file_size) == -1) {
+    perror("ftruncate failed");
+    return STATUS_ERROR;
   }
 
   close(fd);
@@ -224,8 +229,6 @@ int remove_employee_by_name(struct dbheader_t *dbhdr,
 
   for (unsigned int j = 0; j < dbhdr->count; j++) {
     unsigned int equality = strcmp((*employees)[j].name, name);
-    printf("Checking %s at %d against %s, Equality: %u\n", name, j,
-           (*employees)[j].name, equality);
 
     // If name matches
     if (equality == 0) {
@@ -244,7 +247,6 @@ int remove_employee_by_name(struct dbheader_t *dbhdr,
 
   // Find how many employees there exists after the employees list
   int employees_to_move = dbhdr->count - toRemoveIndex - 1;
-  printf("To move: %d\n", employees_to_move);
 
   if (employees_to_move > 0) {
     memmove(&((*employees)[toRemoveIndex]), &((*employees)[toRemoveIndex + 1]),
@@ -274,8 +276,6 @@ int remove_employee_by_name(struct dbheader_t *dbhdr,
 
   // Decrease header count after everything is done
   dbhdr->count--;
-
-  printf("Realloc length: %d size: %lu\n", dbhdr->count, sizeof(*employees));
 
   return STATUS_SUCCESS;
 }

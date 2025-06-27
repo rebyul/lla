@@ -106,11 +106,8 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
-    /* dbhdr->count--; */
-
     printf("Successfully deleted employee %s. New Employee count: %d\n",
            removeName, dbhdr->count);
-    printf("post remove size: %lu\n", sizeof(*employees));
   }
 
   printf("Newfile: %s\n", newfile ? "true" : "false");
