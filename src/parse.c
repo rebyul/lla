@@ -64,8 +64,7 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
   struct employee_t *newEmp = &((*employeesOut)[dbhdr->count]);
 
   if (!newEmp) {
-    perror("malloc");
-    printf("Failed to malloc **newEmp\n");
+    perror("Failed to malloc **newEmp");
     free(newEmp);
     return STATUS_ERROR;
   }
@@ -286,8 +285,28 @@ int remove_employee_by_name(struct dbheader_t *dbhdr,
   return STATUS_SUCCESS;
 }
 
-int update_employee_by_name(struct dbheader_t *dbhdr,
-                            struct employee_t **employees, char *name) {}
+int update_employee_hours(struct dbheader_t *dbhdr,
+                          struct employee_t **employees, char *name,
+                          int newHours) {
+  int index_to_update = -1;
+  int *update_index_ptr = &index_to_update;
+
+  find_first_employee_index(*employees, name, dbhdr->count, update_index_ptr);
+
+  if (*update_index_ptr == -1) {
+    char *errorMsg = NULL;
+    sprintf(errorMsg, "Couldn't find employee %s\n", name);
+    perror(errorMsg);
+    return STATUS_ERROR;
+  }
+  struct employee_t *emp_to_update = &((*employees)[index_to_update]);
+
+  emp_to_update->hours = newHours;
+
+  emp_to_update = NULL;
+
+  return STATUS_SUCCESS;
+}
 void debug_db_header(struct dbheader_t *dbhdr) {
   printf("Header: version %u\n", dbhdr->version);
   printf("Header: filesize %u\n", dbhdr->filesize);
