@@ -48,9 +48,6 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t *employees,
     return STATUS_ERROR;
   }
 
-  printf("Double ptr success: %s %s %d\n", (*newEmp)->name, (*newEmp)->address,
-         (*newEmp)->hours);
-
   employees[dbhdr->count - 1] = **newEmp;
 
   free(*newEmp);
@@ -78,6 +75,7 @@ int read_employees(int fd, struct dbheader_t *dbhdr,
   }
 
   if (read(fd, employees, dbhdr->count * sizeof(struct employee_t)) == -1) {
+    free(dbhdr);
     perror("read");
     return STATUS_ERROR;
   };
