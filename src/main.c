@@ -17,13 +17,14 @@ int main(int argc, char *argv[]) {
   int c;
   char *filepath = NULL;
   bool newfile = false;
+  bool list = false;
   char *addstring = NULL;
 
   int dbfd = -1;
   struct dbheader_t *dbhdr = NULL;
   struct employee_t *employees = NULL;
 
-  while ((c = getopt(argc, argv, "nf:a:")) != -1) {
+  while ((c = getopt(argc, argv, "nf:a:l")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
@@ -33,6 +34,9 @@ int main(int argc, char *argv[]) {
       break;
     case 'a':
       addstring = optarg;
+      break;
+    case 'l':
+      list = true;
       break;
     case '?':
       printf("Unknown option -%c\n", c);
@@ -84,6 +88,10 @@ int main(int argc, char *argv[]) {
     employees = realloc(employees, dbhdr->count * sizeof(struct employee_t));
 
     add_employee(dbhdr, employees, addstring);
+  }
+
+  if (list) {
+    list_employees(dbhdr, employees);
   }
 
   /* debug_db_header(dbhdr); */
