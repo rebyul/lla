@@ -33,29 +33,31 @@ void parse_employee(char *addstring, struct employee_t **newEmpOut) {
 
 int add_employee(struct dbheader_t *dbhdr, struct employee_t *employees,
                  char *addstring) {
-  /* printf("%s\n", addstring); */
-  /* struct employee_t *newEmp = NULL; */
   struct employee_t **newEmp = malloc(sizeof(struct employee_t *));
-  parse_employee(addstring, newEmp);
-  /* printf("Double ptr success: %s %s %d\n", (newEmp)->name, (newEmp)->address,
-   */
-  /*        (newEmp)->hours); */
-  /* (*employees)[dbhdr->count] = */
-  /*     *newEmp; // Dereference to copy the struct's contents */
-  /* struct employee_t **lastEmpSlot = calloc(1, sizeof(struct employee_t)); */
-  /* employees[dbhdr->count - 1] = (*newEmp); */
-  /* *lastEmpSlot = &employees[dbhdr->count - 1]; */
-  /* lastEmpSlot = &newEmp; */
-  strncpy(employees[dbhdr->count - 1].name, (*newEmp)->name,
-          sizeof(employees[dbhdr->count - 1].name));
-  strncpy(employees[dbhdr->count - 1].address, (*newEmp)->address,
-          sizeof(employees[dbhdr->count - 1].address));
-  employees[dbhdr->count - 1].hours = (*newEmp)->hours;
 
-  /* free(newEmp); */
-  /* newEmp = NULL; */
-  /* free(lastEmpSlot); */
-  /* lastEmpSlot = NULL; */
+  if (!newEmp) {
+    printf("Failedt o malloc **newEmp\n");
+    return STATUS_ERROR;
+  }
+
+  parse_employee(addstring, newEmp);
+
+  if (!*newEmp) {
+    printf("Failed to parse into *newEmp\n");
+    free(newEmp);
+    return STATUS_ERROR;
+  }
+
+  printf("Double ptr success: %s %s %d\n", (*newEmp)->name, (*newEmp)->address,
+         (*newEmp)->hours);
+
+  employees[dbhdr->count - 1] = **newEmp;
+
+  free(*newEmp);
+  *newEmp = NULL;
+  free(newEmp);
+  newEmp = NULL;
+
   return STATUS_SUCCESS;
 }
 
@@ -109,7 +111,6 @@ int output_file(int fd, struct dbheader_t *dbhdr,
 
   int i = 0;
   for (; i < realcount; i++) {
-    printf("hours: %d", employees[i].hours);
     employees[i].hours = htonl(employees[i].hours);
     write(fd, &employees[i], sizeof(struct employee_t));
   }
