@@ -8,17 +8,17 @@ SRC_CLI=$(wildcard src/cli/*.c)
 OBJ_CLI = $(SRC_CLI:src/cli/%.c=obj/cli/%.o)
 
 run: clean default
-	./$(TARGET_CLI) -f ./mynewdb.db -n 
-	./$(TARGET_CLI) -f ./mynewdb.db -a "Timmy H.,123 Sheshire Ln.,120"
-	./$(TARGET_CLI) -f ./mynewdb.db -r "Timmy H."
-	./$(TARGET_CLI) -f ./mynewdb.db -a "Timmy H.,123 Sheshire Ln.,120"
-	./$(TARGET_CLI) -f ./mynewdb.db -a "Kenny G,44 Wallaby Way,70"
-	./$(TARGET_CLI) -f ./mynewdb.db -a "Tim T,5/8 Harbour St,20"
-	./$(TARGET_CLI) -f ./mynewdb.db -l
-	./$(TARGET_CLI) -f ./mynewdb.db -r "Kenny G"
-	./$(TARGET_CLI) -f ./mynewdb.db -l
-	./$(TARGET_CLI) -f ./mynewdb.db -u "Tim T" -e 200
-	./$(TARGET_CLI) -f ./mynewdb.db -l
+	# ./$(TARGET_CLI) -f ./mynewdb.db -n 
+	# ./$(TARGET_CLI) -f ./mynewdb.db -a "Timmy H.,123 Sheshire Ln.,120"
+	# ./$(TARGET_CLI) -f ./mynewdb.db -r "Timmy H."
+	# ./$(TARGET_CLI) -f ./mynewdb.db -a "Timmy H.,123 Sheshire Ln.,120"
+	# ./$(TARGET_CLI) -f ./mynewdb.db -a "Kenny G,44 Wallaby Way,70"
+	# ./$(TARGET_CLI) -f ./mynewdb.db -a "Tim T,5/8 Harbour St,20"
+	# ./$(TARGET_CLI) -f ./mynewdb.db -l
+	# ./$(TARGET_CLI) -f ./mynewdb.db -r "Kenny G"
+	# ./$(TARGET_CLI) -f ./mynewdb.db -l
+	# ./$(TARGET_CLI) -f ./mynewdb.db -u "Tim T" -e 200
+	# ./$(TARGET_CLI) -f ./mynewdb.db -l
 	./$(TARGET_SRV) -f ./mynewdb -n -p 8080
 
 default: $(TARGET_SRV) $(TARGET_CLI)
