@@ -19,7 +19,7 @@ run: clean default
 	# ./$(TARGET_CLI) -f ./mynewdb.db -l
 	# ./$(TARGET_CLI) -f ./mynewdb.db -u "Tim T" -e 200
 	# ./$(TARGET_CLI) -f ./mynewdb.db -l
-	./$(TARGET_SRV) -f ./mynewdb -n -p 8080
+	./$(TARGET_SRV) -f ./mynewdb.db -n -p 9999
 
 default: $(TARGET_SRV) $(TARGET_CLI)
 
