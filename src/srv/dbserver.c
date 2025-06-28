@@ -17,25 +17,12 @@
 #include "file.h"
 #include "srvpoll.h"
 
-// TLV - type length value system
-typedef struct {
-  state_e type;       // type of packet
-  unsigned short len; // length
-
-} proto_hdr_t;
-
+clientstate_t clientStates[MAX_CLIENTS];
 void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database files>\n", argv[0]);
   printf("\t -n - create new database file\n");
   printf("\t -f - (required) path to database file\n");
-
-  printf("Options:\n");
-
-  printf("\t -l - list all employees\n");
-  printf("\t -a - add new employee: format: {name},{address},{hours}\n");
-  printf("\t -r - remove employee by name\n");
-  printf("\t -u - update employee by name. New name is given without flags "
-         "e.g. -u 'Tom' 'Tim'\n");
+  printf("\t -p - (required) path to database file\n");
 }
 
 void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
@@ -60,7 +47,6 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
 
   // Poll setup
   struct pollfd poll_fds[MAX_CLIENTS - 1];
-  clientstate_t clientStates[MAX_CLIENTS];
 
   init_clients(clientStates);
 
@@ -222,21 +208,6 @@ int main(int argc, char *argv[]) {
       break;
     case 'f':
       filepath = optarg;
-      break;
-    case 'a':
-      addstring = optarg;
-      break;
-    case 'l':
-      list = true;
-      break;
-    case 'r':
-      removeName = optarg;
-      break;
-    case 'u':
-      emp_to_update_name = optarg;
-      break;
-    case 'e':
-      newHours = atoi(optarg);
       break;
     case 'p':
       srvPort = atoi(optarg);
