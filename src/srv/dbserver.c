@@ -18,6 +18,7 @@
 #include "srvpoll.h"
 
 clientstate_t clientStates[MAX_CLIENTS];
+
 void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database files>\n", argv[0]);
   printf("\t -n - create new database file\n");
@@ -32,7 +33,7 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
       conn_fd /* when we accept a connection we will temporarily save it to this
                */
       ,
-      num_of_file_descriptors = 1, /* max number of file descriptors we have */
+      num_client_fds = 1, /* max number of file descriptors we have */
       free_slot_index /* temporary free slot fd id */;
 
   fd_set /* libc struct which represents a set of file descriptors. This
@@ -95,23 +96,24 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
   // Event is an input event
   poll_fds[0].events = POLLIN;
   // Currently we have 1 fd to check
-  num_of_file_descriptors = 1;
+  num_client_fds = 1;
 
   // Main loop
 
   while (1) {
+    int poll_i = 1;
     for (int i = 0; i < MAX_CLIENTS; i++) {
       if (clientStates[i].fd != -1) {
-        poll_fds[i + 1].fd =
+        poll_fds[poll_i].fd =
             clientStates[i].fd; // Offset by 1 for new_conn_socket which will
                                 // always be in pos 0
-        poll_fds[i + 1].events = POLLIN;
+        poll_fds[poll_i].events = POLLIN;
+        poll_i++;
       }
     }
 
     // Wait for an event on one of the sockets
-    int n_events =
-        poll(poll_fds, num_of_file_descriptors, -1); // -1 means no timeout
+    int n_events = poll(poll_fds, num_client_fds, -1); // -1 means no timeout
     if (n_events == -1) {
       perror("poll");
       exit(EXIT_FAILURE);
@@ -136,7 +138,7 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
       } else {
         clientStates[free_slot_index].fd = conn_fd;
         clientStates[free_slot_index].state = STATE_CONNECTED;
-        num_of_file_descriptors++;
+        num_client_fds++;
         printf("Slot %d has fd %d\n", free_slot_index,
                clientStates[free_slot_index].fd);
       }
@@ -146,17 +148,20 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
 
     // Check each client for read/write activity
     for (/* Start from 1 to skip the new_conn_socket fd check */ int i = 1;
-         i <= num_of_file_descriptors &&
+         i <= num_client_fds &&
          /* stop when we have no more events to process */ n_events > 0;
          i++) {
+      // Dont like this here, it should reduce at the end
+      n_events--;
       if (poll_fds[i].revents & POLLIN) {
         int fd_in_poll_fds = poll_fds[i].fd;
         int index_in_client_states =
             find_slot_by_fd(clientStates, fd_in_poll_fds);
 
-        printf("Reading %d, want fd: %d, slot index: %d, client buf: %s\n", i,
-               fd_in_poll_fds, index_in_client_states,
-               clientStates[index_in_client_states].buffer);
+        /* printf("Reading %d, want fd: %d, slot index: %d, client buf: %s\n",
+         * i, */
+        /*        fd_in_poll_fds, index_in_client_states, */
+        /*        clientStates[index_in_client_states].buffer); */
         ssize_t bytes_read =
             read(clientStates[index_in_client_states].fd,
                  &clientStates[index_in_client_states].buffer,
@@ -165,6 +170,7 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
         if (bytes_read <= 0) {
           // tcp level closing connection
           close(fd_in_poll_fds);
+
           if (index_in_client_states == -1) {
             printf("Tried to close fd that doesn't exist??\n");
           } else {
@@ -174,15 +180,15 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
                    sizeof(clientStates[i].buffer));
             clientStates[index_in_client_states].state = STATE_DISCONNECTED;
             printf("Client disconnected or error\n");
-            num_of_file_descriptors--;
+            num_client_fds--;
           }
         } else {
-          printf("Received data from client: %s\n",
+
+          printf("Client sent data, parsing client headers. Buf: %s",
                  clientStates[index_in_client_states].buffer);
           handle_client_fsm(dbhdr, employees,
                             &clientStates[index_in_client_states]);
         }
-        n_events--;
       }
     }
   }

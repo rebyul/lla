@@ -11,38 +11,100 @@
 
 #include "common.h"
 
-#define PORT 9999
-
 void print_usage(char *argv[]) {
   printf("usage: %s <ip of the host>\n", argv[0]);
+  printf("\t -h - (required) ip of host\n");
+  printf("\t -p - (required) port\n");
+  printf("\t -a - create new database file\n");
 }
 
-void send_hello(int fd) {
+int send_hello(int fd) {
   char buf[4096] = {0};
 
   dbproto_hdr_t *hdr = buf;
   hdr->type = MSG_HELLO_REQ;
   hdr->len = 1;
 
+  // send the hello request with the version we speak after the above basic
+  // point to spot where we want to write the hello headers (proto)
+  dbproto_hello_req *hello = (dbproto_hello_req *)&hdr[1];
+  hello->proto = PROTO_VER;
+
+  // convert to network endianness
   hdr->type = htonl(hdr->type);
   hdr->len = htons(hdr->len);
+  hello->proto = htons(hello->proto);
 
-  write(fd, buf, sizeof(dbproto_hdr_t));
+  // Send to server
+  printf("Sending hello to server proto ver: %d\n", PROTO_VER);
+  write(fd, buf, sizeof(dbproto_hdr_t) + sizeof(dbproto_hello_req));
+  printf("Done sending\n");
+
+  // recv the response
+  read(fd, buf, sizeof(buf));
+  printf("Got res\n");
+
+  hdr->type = ntohl(hdr->type);
+  hdr->len = ntohs(hdr->len);
+
+  if (hdr->type == MSG_ERROR) {
+    printf("Protocol mismatch.\n");
+    close(fd);
+    return STATUS_ERROR;
+  }
 
   printf("Server connected, protocol v%d.\n", PROTO_VER);
+
+  return STATUS_SUCCESS;
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
+  if (argc < 2) {
+    printf("wtf: %d\n", argc);
     print_usage(argv);
     return 0;
+  }
+
+  int c;
+  char *addArg = NULL;
+  char *portArg = NULL, *hostArg = NULL;
+  unsigned short port = 0;
+
+  while ((c = getopt(argc, argv, "p:h:a:")) != -1) {
+    switch (c) {
+    case 'p':
+      portArg = optarg;
+      port = atoi(portArg);
+      break;
+    case 'h':
+      hostArg = optarg;
+      break;
+    case 'a':
+      addArg = optarg;
+      break;
+    case '?':
+      printf("Unknown option -%c\n", c);
+      break;
+    default:
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  if (port == 0) {
+    printf("Bad port: %s\n", portArg);
+    exit(EXIT_FAILURE);
+  }
+
+  if (hostArg == NULL) {
+    printf("Must specify host with -h\n");
+    exit(EXIT_FAILURE);
   }
 
   struct sockaddr_in serverInfo = {0};
 
   serverInfo.sin_family = AF_INET;
-  serverInfo.sin_port = inet_addr(argv[1]);
-  serverInfo.sin_port = htons(PORT);
+  serverInfo.sin_port = inet_addr(hostArg);
+  serverInfo.sin_port = htons(port);
 
   int fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -51,7 +113,28 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  send_hello(fd);
+  int optval = 1;
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+    perror("setsockopt");
+    exit(EXIT_FAILURE);
+  }
+
+  if (connect(fd, (struct sockaddr *)&serverInfo, sizeof(serverInfo)) == -1) {
+    perror("connect");
+    close(fd);
+    exit(EXIT_FAILURE);
+  }
+  printf("Connected to %s:%d", hostArg, port);
+
+  int helloRes = send_hello(fd);
+  if (helloRes != STATUS_SUCCESS) {
+    close(fd);
+    exit(EXIT_FAILURE);
+  }
+
+  if (addArg) {
+    // TODO: add employee
+  }
 
   close(fd);
 

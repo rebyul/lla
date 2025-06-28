@@ -1,9 +1,26 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include "common.h"
 #include "srvpoll.h"
+
+void fsm_reply_hello(clientstate_t *client, dbproto_hdr_t *hdr) {
+  hdr->type = htonl(MSG_HELLO_RESP);
+  hdr->len = htons(1);
+  dbproto_hello_resp *hello = (dbproto_hello_resp *)&hdr[1];
+  hello->proto = htons(PROTO_VER);
+
+  write(client->fd, hdr, sizeof(dbproto_hdr_t) + sizeof(dbproto_hello_resp));
+}
+
+void fsm_reply_hello_err(clientstate_t *client, dbproto_hdr_t *hdr) {
+  hdr->type = htonl(MSG_ERROR);
+  hdr->len = htons(0);
+
+  write(client->fd, hdr, sizeof(dbproto_hdr_t));
+}
 
 void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
                        clientstate_t *client) {
@@ -12,9 +29,17 @@ void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
   hdr->type = ntohl(hdr->type);
   hdr->len = ntohs(hdr->len);
 
+  // If the client has not gone through hello, upgrade to hello
+  if (client->state == STATE_CONNECTED) {
+    printf("Client upgraded to STATE_HELLO\n");
+    client->state = STATE_HELLO;
+  }
+
   if (client->state == STATE_HELLO) {
     if (hdr->type != MSG_HELLO_REQ || hdr->len != 1) {
       printf("Client state: HELLO but header type != HELLO_REQ or len !=1\n");
+      fsm_reply_hello_err(client, hdr);
+      return;
       // TODO: send err msg
     }
 
@@ -23,16 +48,21 @@ void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
     hello->proto = ntohs(hello->proto);
     if (hello->proto != PROTO_VER) {
       printf("Protocol mismatch...\n");
-      // TODO: send err msg
+      fsm_reply_hello_err(client, hdr);
     }
 
-    // TODO: send hello resp
+    // Send hello response
+    fsm_reply_hello(client, hdr);
+
+    // Upgrade to MSG state
     client->state = STATE_MSG;
     printf("Client upgraded to STATE_MSG\n");
   }
 
   if (client->state == STATE_MSG) {
   }
+
+  return;
 }
 
 void init_clients(clientstate_t *states) {
