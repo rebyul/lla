@@ -29,7 +29,7 @@ void send_hello(int fd) {
 
   write(fd, buf, sizeof(dbproto_hdr_t));
 
-  printf("Server connected, protocol v1.\n");
+  printf("Server connected, protocol v%d.\n", PROTO_VER);
 }
 
 int main(int argc, char *argv[]) {
