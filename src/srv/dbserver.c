@@ -179,7 +179,8 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
         } else {
           printf("Received data from client: %s\n",
                  clientStates[index_in_client_states].buffer);
-          handle_client_fsm(dbhdr, employees, clientStates);
+          handle_client_fsm(dbhdr, employees,
+                            &clientStates[index_in_client_states]);
         }
         n_events--;
       }
@@ -257,51 +258,9 @@ int main(int argc, char *argv[]) {
     return 0;
   };
 
-  if (addstring) {
-    add_employee(dbhdr, &employees, addstring);
-
-    printf("Successfully created employee. New Employee count: %d\n",
-           dbhdr->count);
-  }
-
-  if (list) {
-    list_employees(dbhdr, employees);
-  }
-
-  if (removeName) {
-    printf("Attempting to remove: %s\n", removeName);
-    if (remove_employee_by_name(dbhdr, &employees, removeName) ==
-        STATUS_ERROR) {
-      printf("Failed to delete employee %s\n", removeName);
-      exit(EXIT_FAILURE);
-    }
-
-    printf("Successfully deleted employee %s. New Employee count: %d\n",
-           removeName, dbhdr->count);
-  }
-
-  if (emp_to_update_name) {
-    // Check new name
-    if (newHours == -1) {
-      printf("New hours must be a positive number: %d", newHours);
-      exit(EXIT_FAILURE);
-    }
-
-    update_employee_hours(dbhdr, &employees, emp_to_update_name, newHours);
-    printf("Updated %s hours to %u\n", emp_to_update_name, newHours);
-  }
-
-  printf("Newfile: %s\n", newfile ? "true" : "false");
-  printf("Filepath: %s\n", filepath);
-
-  /* debug_db_header(dbhdr); */
-  output_file(dbfd, dbhdr, employees);
-
   poll_loop(srvPort, dbhdr, employees);
-  free(dbhdr);
-  dbhdr = NULL;
-  free(employees);
-  employees = NULL;
+
+  output_file(dbfd, dbhdr, employees);
 
   return 0;
 }
