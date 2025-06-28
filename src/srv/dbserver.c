@@ -240,6 +240,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'p':
       srvPort = atoi(optarg);
+      break;
     case '?':
       printf("Unknown option -%c\n", c);
       break;
