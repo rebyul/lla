@@ -19,13 +19,13 @@ typedef enum { // Connection State enum
 typedef struct {
   int fd;
   state_e state;
-  char buffer[4096]; // Each client gets their own buffer
+  char buffer[BUFF_SIZE]; // Each client gets their own buffer
 } clientstate_t;
 
 void init_clients(clientstate_t *clientStates);
 int find_free_slot_index(clientstate_t *state);
 int find_slot_by_fd(clientstate_t *states, int fd);
-void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
+void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t **employees,
                        clientstate_t *client, int dbfd);
 
 #endif

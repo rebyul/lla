@@ -113,6 +113,7 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
     }
 
     // Wait for an event on one of the sockets
+    printf("[SERVER]: Waiting for message/connection...\n");
     int n_events = poll(poll_fds, num_client_fds, -1); // -1 means no timeout
     if (n_events == -1) {
       perror("poll");
@@ -185,7 +186,7 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
         } else {
           printf("Client sent data, parsing client headers. Buf: %s\n",
                  clientStates[index_in_client_states].buffer);
-          handle_client_fsm(dbhdr, employees,
+          handle_client_fsm(dbhdr, &employees,
                             &clientStates[index_in_client_states], dbfd);
         }
       }

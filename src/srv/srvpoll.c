@@ -29,14 +29,13 @@ void fsm_reply_add(clientstate_t *client, dbproto_hdr_t *hdr) {
   write(client->fd, hdr, sizeof(dbproto_hdr_t));
 }
 
-void fsm_reply_add_err(clientstate_t *client, dbproto_hdr_t *hdr) {
+void fsm_reply_err(clientstate_t *client, dbproto_hdr_t *hdr) {
   hdr->type = htonl(MSG_ERROR);
   hdr->len = htons(0);
 
   write(client->fd, hdr, sizeof(dbproto_hdr_t));
 }
 
-void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
 int fsm_reply_list(clientstate_t *client, dbproto_hdr_t *hdr,
                    struct dbheader_t *dbhdr, struct employee_t **employeesPtr) {
   hdr->type = htonl(MSG_EMPLOYEE_LIST_RESP);
@@ -47,7 +46,8 @@ int fsm_reply_list(clientstate_t *client, dbproto_hdr_t *hdr,
 
   struct employee_t *employees = *employeesPtr;
 
-  // Copy the employyes list to the empList header mem space
+  // Copy the employees list to the empList header mem space one by one and send
+  // to the client
   for (int i = 0; i < dbhdr->count; i++) {
     strncpy(&emp_resp->name, employees[i].name, sizeof(emp_resp->name));
     strncpy(&emp_resp->address, employees[i].address,
@@ -61,6 +61,7 @@ int fsm_reply_list(clientstate_t *client, dbproto_hdr_t *hdr,
   return STATUS_SUCCESS;
 }
 
+void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t **employees,
                        clientstate_t *client, int dbfd) {
   dbproto_hdr_t *hdr = (dbproto_hdr_t *)client->buffer;
 
@@ -78,7 +79,6 @@ int fsm_reply_list(clientstate_t *client, dbproto_hdr_t *hdr,
       printf("Client state: HELLO but header type != HELLO_REQ or len !=1\n");
       fsm_reply_hello_err(client, hdr);
       return;
-      // TODO: send err msg
     }
 
     // Move 1 header size in the client->buffer and cast to dbproto_hello_req
@@ -100,21 +100,20 @@ int fsm_reply_list(clientstate_t *client, dbproto_hdr_t *hdr,
 
   if (client->state == STATE_MSG) {
     if (hdr->type == MSG_EMPLOYEE_ADD_REQ) {
-      printf("Got add emp req\n");
       dbproto_employee_add_req *employee = (dbproto_employee_add_req *)&hdr[1];
+      printf("Got add emp req: %s\n", employee->data);
 
-      printf("Adding employee: %s\n", employee->data);
-
-      if (add_employee(dbhdr, &employees, employee->data) != STATUS_SUCCESS) {
+      if (add_employee(dbhdr, employees, employee->data) != STATUS_SUCCESS) {
         printf("[Reply]: Failed to add employee: %s\n", employee->data);
-        fsm_reply_add_err(client, hdr);
+        fsm_reply_err(client, hdr);
       } else {
         printf("Saving output file\n");
-        output_file(dbfd, dbhdr, employees);
+        output_file(dbfd, dbhdr, *employees);
         fsm_reply_add(client, hdr);
         printf("[Reply]: Successfully added employee\n");
       }
     }
+
     if (hdr->type == MSG_EMPLOYEE_LIST_REQ) {
       printf("Got list emp req\n");
       if (fsm_reply_list(client, hdr, dbhdr, employees) == STATUS_ERROR) {
