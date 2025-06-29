@@ -136,6 +136,7 @@ int output_file(int fd, struct dbheader_t *dbhdr,
     printf("Invalid file descriptor\n");
     return STATUS_ERROR;
   }
+
   // Gotta save this before it's changed from htonl (network long)
   int hostCountValue = dbhdr->count;
   unsigned int final_file_size =
@@ -154,14 +155,23 @@ int output_file(int fd, struct dbheader_t *dbhdr,
   for (; i < hostCountValue; i++) {
     employees[i].hours = htonl(employees[i].hours);
     write(fd, &employees[i], sizeof(struct employee_t));
+    // Change back to host endianness after writing
+    employees[i].hours = ntohl(employees[i].hours);
   }
 
+  printf("Before truncate fd: %d, %u\n", fd, final_file_size);
   if (ftruncate(fd, final_file_size) == -1) {
     perror("ftruncate failed");
     return STATUS_ERROR;
   }
 
-  close(fd);
+  /* close(fd); */
+
+  // Change back to host endianness after writing
+  dbhdr->magic = ntohl(dbhdr->magic);
+  dbhdr->filesize = ntohl(dbhdr->filesize);
+  dbhdr->count = ntohs(dbhdr->count);
+  dbhdr->version = ntohs(dbhdr->version);
 
   return STATUS_SUCCESS;
 }
@@ -329,6 +339,7 @@ int update_employee_hours(struct dbheader_t *dbhdr,
 
   return STATUS_SUCCESS;
 }
+
 void debug_db_header(struct dbheader_t *dbhdr) {
   printf("Header: version %u\n", dbhdr->version);
   printf("Header: filesize %u\n", dbhdr->filesize);
