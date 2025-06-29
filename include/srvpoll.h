@@ -26,6 +26,6 @@ void init_clients(clientstate_t *clientStates);
 int find_free_slot_index(clientstate_t *state);
 int find_slot_by_fd(clientstate_t *states, int fd);
 void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
-                       clientstate_t *client);
+                       clientstate_t *client, int dbfd);
 
 #endif
