@@ -97,6 +97,53 @@ int send_employee(int fd, char *addstr) {
   return STATUS_SUCCESS;
 }
 
+int list_employee(int fd) {
+  char buf[4096] = {0};
+
+  dbproto_hdr_t *hdr = buf;
+  hdr->type = MSG_EMPLOYEE_LIST_REQ;
+  hdr->len = 0;
+
+  // convert to network endianness
+  hdr->type = htonl(hdr->type);
+  hdr->len = htons(hdr->len);
+
+  // Send to server
+  printf("Sending list employees request\n");
+
+  write(fd, buf, sizeof(dbproto_hdr_t) + sizeof(dbproto_employee_add_req));
+  printf("Done sending\n");
+
+  // recv the response
+  read(fd, buf, sizeof(buf));
+  printf("Got res\n");
+
+  hdr->type = ntohl(hdr->type);
+  hdr->len = ntohs(hdr->len);
+
+  if (hdr->type == MSG_ERROR) {
+    printf("[MSG_ERROR]: Failed to list employees\n");
+    close(fd);
+    return STATUS_ERROR;
+  }
+
+  if (hdr->type == MSG_EMPLOYEE_LIST_RESP) {
+    printf("Listing employees...\n");
+    dbproto_employee_list_resp *emp_resp = (dbproto_hello_req *)&hdr[1];
+
+    for (int i = 0; i < hdr->len; i++) {
+      read(fd, emp_resp, sizeof(dbproto_employee_list_resp));
+      emp_resp->hours = ntohl(emp_resp->hours);
+      printf("%s, %s, %d\n", emp_resp->name, emp_resp->address,
+             emp_resp->hours);
+    }
+  }
+
+  printf("Done listing employee\n");
+
+  return STATUS_SUCCESS;
+}
+
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     printf("wtf: %d\n", argc);
@@ -108,8 +155,9 @@ int main(int argc, char *argv[]) {
   char *addArg = NULL;
   char *portArg = NULL, *hostArg = NULL;
   unsigned short port = 0;
+  bool list = false;
 
-  while ((c = getopt(argc, argv, "p:h:a:")) != -1) {
+  while ((c = getopt(argc, argv, "p:h:a:l")) != -1) {
     switch (c) {
     case 'p':
       portArg = optarg;
@@ -121,9 +169,13 @@ int main(int argc, char *argv[]) {
     case 'a':
       addArg = optarg;
       break;
+    case 'l':
+      list = true;
+      break;
     case '?':
       printf("Unknown option -%c\n", c);
       break;
+
     default:
       exit(EXIT_FAILURE);
     }
@@ -163,7 +215,7 @@ int main(int argc, char *argv[]) {
     close(fd);
     exit(EXIT_FAILURE);
   }
-  printf("Connected to %s:%d", hostArg, port);
+  printf("Connected to %s:%d\n", hostArg, port);
 
   int helloRes = send_hello(fd);
   if (helloRes != STATUS_SUCCESS) {
@@ -178,7 +230,16 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (list) {
+    if (list_employee(fd) == STATUS_ERROR) {
+      close(fd);
+      exit(EXIT_FAILURE);
+    }
+  }
+
   close(fd);
 
+  exit(EXIT_SUCCESS);
+  printf("Exit then print?");
   return 0;
 }

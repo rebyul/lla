@@ -37,6 +37,30 @@ void fsm_reply_add_err(clientstate_t *client, dbproto_hdr_t *hdr) {
 }
 
 void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
+int fsm_reply_list(clientstate_t *client, dbproto_hdr_t *hdr,
+                   struct dbheader_t *dbhdr, struct employee_t **employeesPtr) {
+  hdr->type = htonl(MSG_EMPLOYEE_LIST_RESP);
+  hdr->len = htons(dbhdr->count);
+  write(client->fd, hdr, sizeof(dbproto_hdr_t));
+
+  dbproto_employee_list_resp *emp_resp = (dbproto_employee_list_resp *)&hdr[1];
+
+  struct employee_t *employees = *employeesPtr;
+
+  // Copy the employyes list to the empList header mem space
+  for (int i = 0; i < dbhdr->count; i++) {
+    strncpy(&emp_resp->name, employees[i].name, sizeof(emp_resp->name));
+    strncpy(&emp_resp->address, employees[i].address,
+            sizeof(emp_resp->address));
+    emp_resp->hours = htonl(employees[i].hours);
+    write(client->fd, emp_resp, sizeof(dbproto_employee_list_resp));
+  }
+
+  printf("Sending %d employees back to client\n", dbhdr->count);
+
+  return STATUS_SUCCESS;
+}
+
                        clientstate_t *client, int dbfd) {
   dbproto_hdr_t *hdr = (dbproto_hdr_t *)client->buffer;
 
@@ -89,6 +113,13 @@ void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
         output_file(dbfd, dbhdr, employees);
         fsm_reply_add(client, hdr);
         printf("[Reply]: Successfully added employee\n");
+      }
+    }
+    if (hdr->type == MSG_EMPLOYEE_LIST_REQ) {
+      printf("Got list emp req\n");
+      if (fsm_reply_list(client, hdr, dbhdr, employees) == STATUS_ERROR) {
+        printf("How did we fail to list?\n");
+        fsm_reply_err(client, hdr);
       }
     }
   }
