@@ -22,19 +22,36 @@ void list_employees(struct dbheader_t *dbhdr, struct employee_t *employees) {
   }
 }
 
-void update_employee_from_string(char *addstring, struct employee_t *newEmp) {
+int update_employee_from_string(char *addstring, struct employee_t *newEmp) {
   char *addstring_copy = strdup(addstring);
 
   if (addstring_copy == NULL) {
     perror("strdup failed to copy addstring");
-    return;
+    return STATUS_ERROR;
   }
 
   char *name = strtok(addstring_copy, ",");
+
+  if (name == NULL) {
+    printf("No name\n");
+    return STATUS_ERROR;
+  }
+
   // Internally strtok tracks how far we have gone through addstr
   // So we dont need to pass in addstr again
   char *addr = strtok(NULL, ",");
+
+  if (addr == NULL) {
+    printf("No address\n");
+    return STATUS_ERROR;
+  }
+
   char *hours = strtok(NULL, ",");
+
+  if (hours == NULL) {
+    printf("No hours\n");
+    return STATUS_ERROR;
+  }
 
   strncpy((newEmp)->name, name, sizeof((newEmp)->name) - 1);
   (newEmp)->name[sizeof((newEmp)->name) - 1] = '\0'; // Null termination
@@ -45,6 +62,8 @@ void update_employee_from_string(char *addstring, struct employee_t *newEmp) {
   (newEmp)->hours = atoi(hours);
 
   free(addstring_copy);
+
+  return STATUS_SUCCESS;
 }
 
 int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
@@ -69,7 +88,10 @@ int add_employee(struct dbheader_t *dbhdr, struct employee_t **employeesOut,
     return STATUS_ERROR;
   }
 
-  update_employee_from_string(addstring, newEmp);
+  if (update_employee_from_string(addstring, newEmp) == STATUS_ERROR) {
+    perror("Failed to parse employee string");
+    return STATUS_ERROR;
+  };
 
   // Only increment the header count after everything succeeds
   dbhdr->count++;
