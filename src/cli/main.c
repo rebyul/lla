@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -54,6 +55,44 @@ int send_hello(int fd) {
   }
 
   printf("Server connected, protocol v%d.\n", PROTO_VER);
+
+  return STATUS_SUCCESS;
+}
+
+int send_employee(int fd, char *addstr) {
+  char buf[4096] = {0};
+
+  dbproto_hdr_t *hdr = buf;
+  hdr->type = MSG_EMPLOYEE_ADD_REQ;
+  hdr->len = 1;
+
+  dbproto_employee_add_req *add_emp_body = (dbproto_employee_add_req *)&hdr[1];
+  strncpy(&add_emp_body->data, addstr, sizeof(add_emp_body->data));
+
+  // convert to network endianness
+  hdr->type = htonl(hdr->type);
+  hdr->len = htons(hdr->len);
+
+  // Send to server
+  printf("Sending new employee to server addstr: %s\n", addstr);
+
+  write(fd, buf, sizeof(dbproto_hdr_t) + sizeof(dbproto_employee_add_req));
+  printf("Done sending\n");
+
+  // recv the response
+  read(fd, buf, sizeof(buf));
+  printf("Got res\n");
+
+  hdr->type = ntohl(hdr->type);
+  hdr->len = ntohs(hdr->len);
+
+  if (hdr->type == MSG_ERROR) {
+    printf("Improper addr message format: %s\n", addstr);
+    close(fd);
+    return STATUS_ERROR;
+  }
+
+  printf("Done creating new employee\n");
 
   return STATUS_SUCCESS;
 }
@@ -133,7 +172,10 @@ int main(int argc, char *argv[]) {
   }
 
   if (addArg) {
-    // TODO: add employee
+    if (send_employee(fd, addArg) == STATUS_ERROR) {
+      close(fd);
+      exit(EXIT_FAILURE);
+    }
   }
 
   close(fd);
