@@ -159,7 +159,6 @@ int output_file(int fd, struct dbheader_t *dbhdr,
     employees[i].hours = ntohl(employees[i].hours);
   }
 
-  printf("Before truncate fd: %d, %u\n", fd, final_file_size);
   if (ftruncate(fd, final_file_size) == -1) {
     perror("ftruncate failed");
     return STATUS_ERROR;
