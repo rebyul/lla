@@ -23,7 +23,7 @@ void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database files>\n", argv[0]);
   printf("\t -n - create new database file\n");
   printf("\t -f - (required) path to database file\n");
-  printf("\t -p - (required) path to database file\n");
+  printf("\t -p - (required) port to listen on\n");
 }
 
 void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
