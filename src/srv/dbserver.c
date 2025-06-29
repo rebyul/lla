@@ -264,9 +264,9 @@ int main(int argc, char *argv[]) {
     return 0;
   };
 
-  poll_loop(srvPort, dbhdr, employees);
-
   output_file(dbfd, dbhdr, employees);
+
+  poll_loop(srvPort, dbhdr, employees, dbfd);
 
   return 0;
 }
