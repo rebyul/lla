@@ -27,7 +27,7 @@ void print_usage(char *argv[]) {
 }
 
 void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
-               struct employee_t *employees) {
+               struct employee_t *employees, int dbfd) {
   // Socket code
   int new_conn_socket, /* listening for clients fd */
       conn_fd /* when we accept a connection we will temporarily save it to this
@@ -183,11 +183,10 @@ void poll_loop(unsigned short port, struct dbheader_t *dbhdr,
             num_client_fds--;
           }
         } else {
-
-          printf("Client sent data, parsing client headers. Buf: %s",
+          printf("Client sent data, parsing client headers. Buf: %s\n",
                  clientStates[index_in_client_states].buffer);
           handle_client_fsm(dbhdr, employees,
-                            &clientStates[index_in_client_states]);
+                            &clientStates[index_in_client_states], dbfd);
         }
       }
     }
@@ -247,6 +246,7 @@ int main(int argc, char *argv[]) {
       printf("Failed to create database header\n");
       exit(EXIT_FAILURE);
     }
+    printf("File and headers created\n");
   } else {
     dbfd = open_db_file(filepath);
     if (dbfd == STATUS_ERROR) {
